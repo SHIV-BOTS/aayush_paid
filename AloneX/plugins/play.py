@@ -15,6 +15,7 @@ from pathlib import Path
 
 from pyrogram import filters, types
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+from pyrogram.errors import MessageNotModified  # <-- ADDED EXCEPTION IMPORT
 
 from AloneX import anon, app, config, db, lang, queue, tg, yt
 from AloneX.helpers import buttons, utils
@@ -279,10 +280,20 @@ async def play_hndlr(
         if Path(fname).exists():
             file.file_path = fname
         else:
-            await sent.edit_text(MSG_DOWNLOADING)
+            # FIX: Safely attempt to edit the text
+            try:
+                await sent.edit_text(MSG_DOWNLOADING)
+            except MessageNotModified:
+                pass
+            
             file.file_path = await yt.download(file.id, video=video)
 
-    await sent.edit_text(MSG_STARTING)
+    # FIX: Safely attempt to edit to MSG_STARTING
+    try:
+        await sent.edit_text(MSG_STARTING)
+    except MessageNotModified:
+        pass
+        
     await asyncio.sleep(0.5)
 
     await anon.play_media(chat_id=m.chat.id, message=sent, media=file)
