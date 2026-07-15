@@ -303,7 +303,7 @@ class Inline:
         if private:
             rows += [
                 [
-                    self.ikb(text=lang[" ⎎ THE SHIV ⎎ "], url=config.OWNER_USERNAME, style=style[2]),
+                    self.ikb(text=lang["SHIV"], url=config.OWNER_USERNAME, style=style[2]),
                     self.ikb(text=lang["channel"], url=config.SUPPORT_CHANNEL, style=style[2]),
                 ]
             ]
