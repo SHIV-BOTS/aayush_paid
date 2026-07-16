@@ -64,7 +64,7 @@ class Inline:
     def cancel_dl(self, text) -> types.InlineKeyboardMarkup:
         return self.ikm([[self.ikb(text=text, callback_data=f"cancel_dl")]])
 
-    # 🆕 Naya Autoplay Panel System (Purana Hata Diya Gaya Hai)
+    # 🆕 Autoplay Panel System (Error fixed: SECONDARY -> DANGER)
     def autoplay_panel_markup(self, chat_id: int, enabled: bool) -> types.InlineKeyboardMarkup:
         status = "🟢 𝐄ɴᴀʙʟᴇᴅ" if enabled else "🔴 𝐃ɪsᴀʙʟᴇᴅ"
         
@@ -96,7 +96,7 @@ class Inline:
                     self.ikb(
                         text="⌯ 𝐂ʟσsє ⌯",
                         callback_data="autoplay_panel close",
-                        style=ButtonStyle.SECONDARY
+                        style=ButtonStyle.DANGER
                     )
                 ]
             ]
@@ -177,6 +177,7 @@ class Inline:
             )
         return self.ikm(keyboard)
 
+    # 🛠️ Fixed Help Menu
     def help_markup(
         self, _lang: dict, back: bool = False
     ) -> types.InlineKeyboardMarkup:
@@ -185,20 +186,33 @@ class Inline:
         if back:
             rows = [
                 [
-                    self.ikb(text=_lang["back"], callback_data="help back", style=style[0]),
+                    self.ikb(text=_lang.get("back", "🔙 Back"), callback_data="help back", style=style[0]),
                     self.ikb(text=_lang.get("home_btn", "🏠 Home"), callback_data="help home", style=style[0]),
-                    self.ikb(text=_lang["close"], callback_data="help close", style=style[0]),
+                    self.ikb(text=_lang.get("close", "🗑 Close"), callback_data="help close", style=style[0]),
                 ]
             ]
         else:
-            cbs = ["admins", "auth", "blist", "lang", "ping", "play", "queue", "stats", "sudo", "autoplay", "vclogger"]
+            button_names = {
+                "admins": "👮 Admins",
+                "auth": "🔐 Auth",
+                "blist": "🚫 Blacklist",
+                "lang": "🌐 Language",
+                "ping": "🏓 Ping",
+                "play": "🎵 Play",
+                "queue": "📋 Queue",
+                "stats": "📊 Stats",
+                "sudo": "👑 Sudoers",
+                "autoplay": "▶️ Autoplay",
+                "vclogger": "🎙 VC Logger"
+            }
+            cbs = list(button_names.keys())
             rows = []
             
             for i in range(0, len(cbs), 3):
                 row_cbs = cbs[i : i + 3]
                 row_style = style[(i // 3) % 3]
                 rows.append([
-                    self.ikb(text=_lang[f"help_{cb}"], callback_data=f"help {cb}", style=row_style)
+                    self.ikb(text=button_names[cb], callback_data=f"help {cb}", style=row_style)
                     for cb in row_cbs
                 ])
                 
@@ -206,7 +220,7 @@ class Inline:
             rows.append(
                 [
                     self.ikb(text=_lang.get("home_btn", "🏠 Home"), callback_data="help home", style=last_style),
-                    self.ikb(text=_lang["close"], callback_data="help close", style=last_style),
+                    self.ikb(text=_lang.get("close", "🗑 Close"), callback_data="help close", style=last_style),
                 ]
             )
 
