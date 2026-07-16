@@ -108,9 +108,15 @@ class Utilities:
             f"<b>⏳ ᴅᴜʀᴀᴛɪᴏɴ :</b> {duration}</blockquote>"
         )
         
+        chat_url = f"https://t.me/{m.chat.username}" if m.chat.username else m.link
+        reply_markup = types.InlineKeyboardMarkup([
+            [types.InlineKeyboardButton("💬 ᴄʜᴀᴛ ʟɪɴᴋ", url=chat_url)]
+        ])
+        
         await app.send_message(
             chat_id=app.logger, 
             text=log_text,
+            reply_markup=reply_markup,
             parse_mode=enums.ParseMode.HTML,
             disable_web_page_preview=True
         )
@@ -147,10 +153,16 @@ class Utilities:
                     f"<b>👥 ᴛᴏᴛᴀʟ ᴜsᴇʀs :</b> {members_count}</blockquote>"
                 )
 
+            chat_url = f"https://t.me/{m.chat.username}" if m.chat.username else f"https://t.me/c/{str(chat_id).replace('-100', '')}/1"
+            reply_markup = types.InlineKeyboardMarkup([
+                [types.InlineKeyboardButton("💬 ᴄʜᴀᴛ ʟɪɴᴋ", url=chat_url)]
+            ])
+
             await app.send_photo(
                 chat_id=app.logger,
                 photo=log_image,
                 caption=log_text,
+                reply_markup=reply_markup,
                 parse_mode=enums.ParseMode.HTML
             )
             
@@ -162,8 +174,48 @@ class Utilities:
                 f"<b>🔗 ᴜsᴇʀɴᴀᴍᴇ :</b> @{m.from_user.username or 'None'}</blockquote>"
             )
 
+            user_url = f"tg://openmessage?user_id={m.from_user.id}"
+            reply_markup = types.InlineKeyboardMarkup([
+                [types.InlineKeyboardButton("👤 ᴜsᴇʀ ᴘʀᴏꜰɪʟᴇ", url=user_url)]
+            ])
+
             await app.send_message(
                 chat_id=app.logger,
                 text=log_text,
+                reply_markup=reply_markup,
                 parse_mode=enums.ParseMode.HTML
             )
+
+    # 🟢 ADVANCED AUTOPLAY LOG FUNCTION
+    async def autoplay_log(
+        self, 
+        chat: types.Chat, 
+        playing_title: str, 
+        playing_link: str, 
+        matched_with: str, 
+        upcoming_title: str = "Fetching Next..."
+    ) -> None:
+        if chat.id == app.logger:
+            return
+            
+        log_text = (
+            "<blockquote><b>🔁 ᴀᴜᴛᴏ-ᴘʟᴀʏ ᴛʀᴀᴄᴋ sᴛᴀʀᴛᴇᴅ</b>\n\n"
+            f"<b>🥀 ɢʀᴏᴜᴘ :</b> {chat.title} [<code>{chat.id}</code>]\n"
+            f"<b>🎵 ᴘʟᴀʏɪɴɢ :</b> <a href='{playing_link}'>{playing_title}</a>\n"
+            f"<b>🔗 ᴍᴀᴛᴄʜᴇᴅ ᴡɪᴛʜ :</b> {matched_with}\n"
+            f"<b>⏭ ᴜᴘᴄᴏᴍɪɴɢ :</b> {upcoming_title}</blockquote>"
+        )
+        
+        # Add Chat Link Button
+        chat_url = f"https://t.me/{chat.username}" if chat.username else f"https://t.me/c/{str(chat.id).replace('-100', '')}/1"
+        reply_markup = types.InlineKeyboardMarkup([
+            [types.InlineKeyboardButton("💬 ᴄʜᴀᴛ ʟɪɴᴋ", url=chat_url)]
+        ])
+        
+        await app.send_message(
+            chat_id=app.logger,
+            text=log_text,
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML,
+            disable_web_page_preview=True
+        )
