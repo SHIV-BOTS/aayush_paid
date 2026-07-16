@@ -59,9 +59,9 @@ async def delete_promo_record(chat_id: int, message_id: int):
 # ==========================================
 # SELF PROMO ASSETS
 # ==========================================
-PROMO_IMAGE = "https://files.catbox.moe/kpufb0.jpg"
+PROMO_IMAGE = "https://files.catbox.moe/3hf79f.png"
 PROMO_TEXT = """
-⊚ ᴛʜɪꜱ ɪꜱ [˹♪ Mariya x Music ♪˼ [ 💌 ]](https://t.me/royal_musics_bot)
+⊚ ᴛʜɪꜱ ɪꜱ [˹♪ Mariya x Music ♪˼ \[ 💌 \]](https://t.me/royal_musics_bot)
 
 ➻ ᴧ ᴘʀєᴍɪᴜᴍ ᴅєꜱɪɢηєᴅ ϻᴜꜱɪᴄ ᴘʟᴧʏєʀ ʙσᴛ ꜰσʀ ᴛєʟєɢʀᴧϻ ɢʀσᴜᴘ & ᴄʜᴧηηєʟ. 
 🎧 24x7 ᴍᴜꜱɪᴄ • ꜱᴍᴏᴏᴛʜ ᴀɴᴅ ꜰᴀꜱᴛ ᴘʟᴀʏʙᴀᴄᴋ
