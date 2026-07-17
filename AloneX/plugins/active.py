@@ -35,7 +35,7 @@ async def _activevc(_, m: types.Message):
 
     for i, chat in enumerate(db.active_calls):
         playing = queue.get_current(chat)
-        text += f"\n{i+1}. <code>{chat}</code>\n    ➜ {playing.title[:25]}"
+        text += f"\n{i+1}. <code>{chat}</code>\n  ➜ {playing.title[:25]}"
 
     if len(text) < 4000:
         return await sent.edit_text(m.lang["vc_list"] + text)
@@ -106,64 +106,29 @@ async def _tvc(_, m: types.Message):
 
 
 # ==========================================
-# 🆕 /bdata - BOT & ASSISTANT GROUPS COUNT (UPGRADED)
+# 🆕 /bdata - BOT & ASSISTANT GROUPS COUNT (FIXED)
 # ==========================================
 @app.on_message(filters.command(["bdata"]) & app.sudoers)
 async def _bdata(_, m: types.Message):
-    sent = await m.reply_text("<blockquote><b>⏳ ꜰᴇᴛᴄʜɪɴɢ ʙᴏᴛ & ᴀssɪsᴛᴀɴᴛ ᴅᴀᴛᴀ...\n(ɪsᴍᴇ ᴛʜᴏᴅᴀ ᴛɪᴍᴇ ʟᴀɢ sᴀᴋᴛᴀ ʜᴀɪ ᴀᴅᴍɪɴ sᴛᴀᴛᴜs ᴄʜᴇᴄᴋs ᴋɪ ᴡᴀᴊᴀʜ sᴇ)</b></blockquote>")
+    sent = await m.reply_text("<blockquote><b>⏳ ꜰᴇᴛᴄʜɪɴɢ ʙᴏᴛ & ᴀssɪsᴛᴀɴᴛ ᴅᴀᴛᴀ...</b></blockquote>")
     
-    bot_groups = 0
-    bot_supergroups = 0
-    bot_channels = 0
-    
-    admin_groups = 0
-    non_admin_groups = 0
-    
-    ass_groups = 0
-    
-    me = await app.get_me()
-    
-    # 1. Bot Data Fetching (Groups & Admin Status)
+    # 1. Instant Data Fetching from Database (Avoids Telegram Limit)
     try:
-        async for dialog in app.get_dialogs():
-            chat_type = dialog.chat.type
-            
-            if chat_type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-                # Supergroup vs Basic Group count
-                if chat_type == enums.ChatType.SUPERGROUP:
-                    bot_supergroups += 1
-                else:
-                    bot_groups += 1
-                    
-                # Admin Status Check
-                try:
-                    member = await app.get_chat_member(dialog.chat.id, me.id)
-                    if member.status in [enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.OWNER]:
-                        admin_groups += 1
-                    else:
-                        non_admin_groups += 1
-                except FloodWait as e:
-                    await asyncio.sleep(e.value + 1)
-                    non_admin_groups += 1 # Floodwait aane par safely skip karke non-admin me count karega
-                except Exception:
-                    non_admin_groups += 1
-                    
-            elif chat_type == enums.ChatType.CHANNEL:
-                bot_channels += 1
+        total_chats_list = await db.get_chats()
+        bot_groups = len(total_chats_list)
     except Exception:
-        pass
+        bot_groups = "Error fetching"
 
-    # 2. Users Data Fetching (Total only)
     try:
         total_users_list = await db.get_users()
         total_users = len(total_users_list)
     except Exception:
         total_users = "Error fetching"
 
-    # 3. Assistant Data Fetching
+    # 2. Assistant Data Fetching (Userbot Dialogs)
+    ass_groups = 0
     if userbot:
         try:
-            # Agar aapka userbot instance kisi aur naam se hai toh 'one' ki jagah wo likhein
             client = getattr(userbot, 'one', None)
             if client:
                 async for dialog in client.get_dialogs():
@@ -174,15 +139,10 @@ async def _bdata(_, m: types.Message):
     else:
         ass_groups = "Not imported"
 
-    # 4. Final Text Formatting
+    # 3. Final Text Formatting
     text = (
         "<blockquote><b>📊 ᴍᴀʜɪ ᴍᴜsɪᴄ sᴛᴀᴛɪsᴛɪᴄs</b>\n\n"
-        f"<b>🤖 ᴛᴏᴛᴀʟ ʙᴏᴛ ɢʀᴏᴜᴘs :</b> {bot_groups + bot_supergroups}\n"
-        f"<b>┣ 👑 ᴀᴅᴍɪɴ ɪɴ :</b> {admin_groups}\n"
-        f"<b>┣ 👤 ɴᴏɴ-ᴀᴅᴍɪɴ :</b> {non_admin_groups}\n"
-        f"<b>┣ 🏗 sᴜᴘᴇʀɢʀᴏᴜᴘs :</b> {bot_supergroups}\n"
-        f"<b>┗ 🏘 ʙᴀsɪᴄ ɢʀᴏᴜᴘs :</b> {bot_groups}\n\n"
-        f"<b>📢 ʙᴏᴛ ɪɴ ᴄʜᴀɴɴᴇʟs :</b> {bot_channels}\n\n"
+        f"<b>🤖 ᴛᴏᴛᴀʟ ʙᴏᴛ ɢʀᴏᴜᴘs :</b> {bot_groups}\n\n"
         f"<b>👥 ᴛᴏᴛᴀʟ ᴜsᴇʀs :</b> {total_users}\n\n"
         f"<b>👤 ᴀssɪsᴛᴀɴᴛ ɪɴ ɢʀᴏᴜᴘs :</b> {ass_groups}</blockquote>"
     )
@@ -191,14 +151,15 @@ async def _bdata(_, m: types.Message):
 
 
 # ==========================================
-# 🆕 /tdata - TODAY'S ADD/REMOVE & USER STATS
+# 🆕 /tdata - TODAY'S ADD/REMOVE & USER STATS (FIXED)
 # ==========================================
 @app.on_message(filters.command(["tdata"]) & app.sudoers)
 async def _tdata(_, m: types.Message):
     try:
         added = await db.get_today_added_count()
         removed = await db.get_today_removed_count()
-        today_users = await db.get_today_users_count()
+        # FIX: Puraana function call galat tha, db.py me 'new_users' wala function hai
+        today_users = await db.get_today_new_users_count()
     except AttributeError:
         # Fallback agar MongoDB wale functions abhi db.py me nahi dale gaye
         added = "DB Setup Required"
