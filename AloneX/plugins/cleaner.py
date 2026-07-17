@@ -2,12 +2,15 @@ import os
 from pyrogram import filters
 from pyrogram.types import Message
 from AloneX import app, config
-from AloneX.misc import SUDOERS
 
 DOWNLOAD_DIR = "downloads"
 
-@app.on_message(filters.command(["clean"]) & SUDOERS)
+@app.on_message(filters.command(["clean"]))
 async def clean_cmd(client, message: Message):
+    # ✅ Bina kisi external module ko import kiye, direct sudo check
+    if message.from_user.id not in app.sudoers:
+        return
+        
     if len(message.command) < 2:
         return await message.reply_text("⚠️ Ghalat Format!\nUse: `/clean 10` ya `/clean all`")
     
@@ -28,15 +31,21 @@ async def clean_cmd(client, message: Message):
     
     if arg == "all":
         for f in files:
-            os.remove(f)
-            deleted_count += 1
+            try:
+                os.remove(f)
+                deleted_count += 1
+            except:
+                pass
         msg = f"🗑 **Cleaned All!**\nTotal {deleted_count} downloaded songs remove kar diye gaye hain."
         
     elif arg.isdigit():
         count = int(arg)
         for f in files[:count]:
-            os.remove(f)
-            deleted_count += 1
+            try:
+                os.remove(f)
+                deleted_count += 1
+            except:
+                pass
         msg = f"🗑 **Cleaned Oldest Songs!**\nSabse purane {deleted_count} downloaded songs remove kar diye gaye hain."
         
     else:
@@ -47,13 +56,18 @@ async def clean_cmd(client, message: Message):
     # Send report to Logger Group
     try:
         log_report = f"👤 {message.from_user.mention} ne manual cleanup run kiya.\n\n{msg}"
-        await app.send_message(config.LOGGER_ID, log_report)
-    except Exception as e:
+        if hasattr(config, "LOGGER_ID") and config.LOGGER_ID:
+            await app.send_message(config.LOGGER_ID, log_report)
+    except Exception:
         pass
 
 
-@app.on_message(filters.command(["downloads"]) & SUDOERS)
+@app.on_message(filters.command(["downloads"]))
 async def list_downloads(client, message: Message):
+    # ✅ Sudo check
+    if message.from_user.id not in app.sudoers:
+        return
+
     if not os.path.exists(DOWNLOAD_DIR):
         return await message.reply_text("Downloads folder exist nahi karta.")
         
@@ -66,7 +80,7 @@ async def list_downloads(client, message: Message):
     
     # Message lamba na ho isliye sirf 30 dikhayenge
     for i, f in enumerate(files[:30], 1):
-        text += f"**{i}.** `{f}`\n"
+        text += f"**{i}.** `{os.path.basename(f)}`\n"
         
     if len(files) > 30:
         text += f"\n*...and {len(files) - 30} more.*"
