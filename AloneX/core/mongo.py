@@ -335,51 +335,69 @@ class MongoDB:
         return self.users
 
     # ==========================================
-    # DAILY STATS LOGIC FOR /tdata
+    # DAILY STATS LOGIC FOR /tdata (WITH AUTO-CLEAN)
     # ==========================================
     def get_today_date(self) -> str:
         return datetime.now().strftime("%Y-%m-%d")
 
-    # ADD NEW USER
-    async def update_today_new_user(self) -> None:
+    async def _check_and_reset_daily(self):
+        """
+        Check karega ki aaj ki date DB wali date se match karti hai ya nahi.
+        Agar date change ho gayi (agla din aa gaya), toh saare stats 0 kar dega.
+        """
         today = self.get_today_date()
+        doc = await self.statsdb.find_one({"_id": "daily_stats"})
+        
+        # Agar document nahi hai, ya date kal ki/purani hai -> Reset to 0
+        if not doc or doc.get("date") != today:
+            await self.statsdb.update_one(
+                {"_id": "daily_stats"},
+                {"$set": {
+                    "date": today, 
+                    "new_users": 0, 
+                    "added": 0,     # Bot added to new groups
+                    "removed": 0    # Bot kicked/removed from groups
+                }},
+                upsert=True
+            )
+
+    # --- NEW USERS ---
+    async def update_today_new_user(self) -> None:
+        await self._check_and_reset_daily()
         await self.statsdb.update_one(
-            {"date": today},
-            {"$inc": {"new_users": 1}},
-            upsert=True
+            {"_id": "daily_stats"},
+            {"$inc": {"new_users": 1}}
         )
 
     async def get_today_new_users_count(self) -> int:
-        today = self.get_today_date()
-        doc = await self.statsdb.find_one({"date": today})
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "daily_stats"})
         return doc.get("new_users", 0) if doc else 0
 
-    # ADD TO GROUP
+    # --- ADDED TO GROUPS ---
     async def update_today_added(self) -> None:
-        today = self.get_today_date()
+        await self._check_and_reset_daily()
         await self.statsdb.update_one(
-            {"date": today},
-            {"$inc": {"added": 1}},
-            upsert=True
+            {"_id": "daily_stats"},
+            {"$inc": {"added": 1}}
         )
 
     async def get_today_added_count(self) -> int:
-        today = self.get_today_date()
-        doc = await self.statsdb.find_one({"date": today})
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "daily_stats"})
         return doc.get("added", 0) if doc else 0
 
-    # REMOVE FROM GROUP
+    # --- REMOVED/KICKED FROM GROUPS ---
     async def update_today_removed(self) -> None:
-        today = self.get_today_date()
+        await self._check_and_reset_daily()
         await self.statsdb.update_one(
-            {"date": today},
-            {"$inc": {"removed": 1}},
-            upsert=True
+            {"_id": "daily_stats"},
+            {"$inc": {"removed": 1}}
         )
 
     async def get_today_removed_count(self) -> int:
-        today = self.get_today_date()
-        doc = await self.statsdb.find_one({"date": today})
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "daily_stats"})
         return doc.get("removed", 0) if doc else 0
     # ==========================================
 
