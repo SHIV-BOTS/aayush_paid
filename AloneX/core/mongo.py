@@ -46,15 +46,11 @@ class MongoDB:
         self.users = []
         self.usersdb = self.db.users
 
-        # 🆕 NEW: Collection for daily stats (/tdata)
+        # 🆕 Collection for daily stats (/tdata)
         self.statsdb = self.db.daily_stats
 
     async def connect(self) -> None:
-        """Check if we can connect to the database.
-
-        Raises:
-            SystemExit: If the connection to the database fails.
-        """
+        """Check if we can connect to the database."""
         try:
             start = time()
             await self.mongo.admin.command("ping")
@@ -339,11 +335,26 @@ class MongoDB:
         return self.users
 
     # ==========================================
-    # 🆕 DAILY STATS LOGIC FOR /tdata
+    # DAILY STATS LOGIC FOR /tdata
     # ==========================================
     def get_today_date(self) -> str:
         return datetime.now().strftime("%Y-%m-%d")
 
+    # ADD NEW USER
+    async def update_today_new_user(self) -> None:
+        today = self.get_today_date()
+        await self.statsdb.update_one(
+            {"date": today},
+            {"$inc": {"new_users": 1}},
+            upsert=True
+        )
+
+    async def get_today_new_users_count(self) -> int:
+        today = self.get_today_date()
+        doc = await self.statsdb.find_one({"date": today})
+        return doc.get("new_users", 0) if doc else 0
+
+    # ADD TO GROUP
     async def update_today_added(self) -> None:
         today = self.get_today_date()
         await self.statsdb.update_one(
@@ -352,6 +363,12 @@ class MongoDB:
             upsert=True
         )
 
+    async def get_today_added_count(self) -> int:
+        today = self.get_today_date()
+        doc = await self.statsdb.find_one({"date": today})
+        return doc.get("added", 0) if doc else 0
+
+    # REMOVE FROM GROUP
     async def update_today_removed(self) -> None:
         today = self.get_today_date()
         await self.statsdb.update_one(
@@ -360,19 +377,10 @@ class MongoDB:
             upsert=True
         )
 
-    async def get_today_added_count(self) -> int:
-        today = self.get_today_date()
-        doc = await self.statsdb.find_one({"date": today})
-        if doc:
-            return doc.get("added", 0)
-        return 0
-
     async def get_today_removed_count(self) -> int:
         today = self.get_today_date()
         doc = await self.statsdb.find_one({"date": today})
-        if doc:
-            return doc.get("removed", 0)
-        return 0
+        return doc.get("removed", 0) if doc else 0
     # ==========================================
 
     async def migrate_coll(self) -> None:
