@@ -31,13 +31,18 @@ def get_progress_bar(current, total, length=20):
     return bar
 
 # ==========================================
-# SELF PROMO DATABASE SETUP
+# DATABASE SETUP (PROMO & BROADCAST)
 # ==========================================
 dbclient = AsyncIOMotorClient(MONGO_DB_URI)
 promo_db = dbclient.AloneXPromo
+
+# Promo Collections
 promo_msgs_db = promo_db.promo_messages
 promo_toggle_db = promo_db.promo_settings
 broadcast_time_db = promo_db.promo_time
+
+# Regular Broadcast (Gcast) Auto-Delete Collection
+gcast_msgs_db = promo_db.gcast_messages
 
 async def is_promo_on() -> bool:
     chat = await promo_toggle_db.find_one({"_id": "promo_toggle"})
@@ -52,11 +57,15 @@ async def save_promo_msg(chat_id: int, message_id: int):
     await promo_msgs_db.insert_one({"chat_id": chat_id, "message_id": message_id, "timestamp": int(time.time())})
 
 async def get_old_promo_msgs():
-    time_limit = int(time.time()) - 172800 # 48 hours
+    time_limit = int(time.time()) - 172800 # 48 hours for promo
     return promo_msgs_db.find({"timestamp": {"$lt": time_limit}})
 
 async def delete_promo_record(chat_id: int, message_id: int):
     await promo_msgs_db.delete_one({"chat_id": chat_id, "message_id": message_id})
+
+# Auto Delete Helper for Regular Broadcasts
+async def save_gcast_msg(chat_id: int, message_id: int):
+    await gcast_msgs_db.insert_one({"chat_id": chat_id, "message_id": message_id, "timestamp": int(time.time())})
 
 # ==========================================
 # SELF PROMO ASSETS
@@ -89,7 +98,7 @@ def get_random_button():
     )
 
 # ==========================================
-# MAIN BROADCAST COMMAND (Upgraded)
+# MAIN BROADCAST COMMAND
 # ==========================================
 @app.on_message(filters.command(["broadcast", "gcast"]) & app.sudoers)
 @lang.language()
@@ -106,108 +115,192 @@ async def _broadcast(_, message: types.Message):
         if len(message.command) < 2:
             return await message.reply_text(message.lang["gcast_usage"])
         query = message.text.split(None, 1)[1]
-        
-        # Checking flags
-        if "-pinloud" in query:
-            query = query.replace("-pinloud", "")
-        elif "-pin" in query:
-            query = query.replace("-pin", "")
-            
-        if "-nobot" in query:
-            query = query.replace("-nobot", "")
-        if "-user" in query:
-            query = query.replace("-user", "")
-            
-        if query.strip() == "":
-            return await message.reply_text("Please provide text to broadcast.")
+
+    # Checking target flags
+    send_to_users = False
+    send_to_groups = False
+
+    if "-user" in query:
+        send_to_users = True
+        query = query.replace("-user", "")
+    
+    if "-group" in query:
+        send_to_groups = True
+        query = query.replace("-group", "")
+
+    # If no specific flag is given, send to both
+    if not send_to_users and not send_to_groups:
+        send_to_users = True
+        send_to_groups = True
+
+    # Checking pin flags
+    pin = False
+    loud = False
+    if "-pinloud" in query:
+        pin = True
+        loud = False
+        query = query.replace("-pinloud", "")
+    elif "-pin" in query:
+        pin = True
+        loud = True
+        query = query.replace("-pin", "")
+
+    query = query.strip()
+    if not query and not message.reply_to_message:
+        return await message.reply_text("Please provide text to broadcast.")
 
     IS_BROADCASTING = True
-    sent_msg = await message.reply_text(message.lang["gcast_start"])
+    status_msg = await message.reply_text("🔄 **Initializing broadcast... fetching database.**")
 
-    # Log to logger group
-    await (await app.send_message(
-        chat_id=app.logger, 
-        text=message.lang["gcast_log"].format(
-            message.from_user.id,
-            message.from_user.mention,
-            message.text,
-        )
-    )).pin(disable_notification=False)
-    
-    await asyncio.sleep(2)
+    users = await db.get_users() if send_to_users else []
+    chats = await db.get_chats() if send_to_groups else []
 
-    sent, pin, susr = 0, 0, 0
-    failed = ""
+    total_users = len(users)
+    total_chats = len(chats)
+    total_targets = total_users + total_chats
 
-    # Broadcast to Groups
-    if "-nobot" not in message.text:
-        chats = await db.get_chats()
-        for chat in chats:
-            if not IS_BROADCASTING:
-                break
-            chat_id = chat["chat_id"] if isinstance(chat, dict) else chat
+    if total_targets == 0:
+        IS_BROADCASTING = False
+        return await status_msg.edit_text("❌ No users or groups found in database to broadcast.")
+
+    u_success, u_failed = 0, 0
+    g_success, g_failed = 0, 0
+    pinned_cnt = 0
+    completed = 0
+
+    async def update_progress():
+        # Update progress bar every 20 messages to prevent FloodWait limit on edits
+        if completed % 20 == 0 or completed == total_targets:
+            bar = get_progress_bar(completed, total_targets)
+            percent = int((completed / total_targets) * 100)
+            text = (
+                f"🔄 **Live Broadcasting...**\n\n"
+                f"[{bar}] **{percent}%**\n\n"
+                f"👥 **Users:** ✅ {u_success} | ❌ {u_failed}\n"
+                f"🏘 **Groups:** ✅ {g_success} | ❌ {g_failed}\n"
+                f"📌 **Pinned:** {pinned_cnt}\n\n"
+                f"⏳ *(Messages will auto-delete in 24 hours)*"
+            )
             try:
-                m = (
-                    await app.forward_messages(chat_id, y, x)
-                    if message.reply_to_message
-                    else await app.send_message(chat_id, text=query)
-                )
-                if "-pinloud" in message.text:
-                    try:
-                        await m.pin(disable_notification=False)
-                        pin += 1
-                    except Exception:
-                        pass
-                elif "-pin" in message.text:
-                    try:
-                        await m.pin(disable_notification=True)
-                        pin += 1
-                    except Exception:
-                        pass
-                sent += 1
-                await asyncio.sleep(0.1)
-            except FloodWait as fw:
-                await asyncio.sleep(fw.value + 3)
-            except Exception as ex:
-                failed += f"{chat_id} - {ex}\n"
-                continue
+                await status_msg.edit_text(text)
+            except Exception:
+                pass
 
     # Broadcast to Users
-    if "-user" in message.text:
-        users = await db.get_users()
+    if send_to_users:
         for user in users:
             if not IS_BROADCASTING:
                 break
-            user_id = user["user_id"] if isinstance(user, dict) else user
+            user_id = int(user["user_id"] if isinstance(user, dict) else user)
             try:
                 m = (
                     await app.forward_messages(user_id, y, x)
                     if message.reply_to_message
                     else await app.send_message(user_id, text=query)
                 )
-                susr += 1
-                await asyncio.sleep(0.1)
+                if m:
+                    await save_gcast_msg(user_id, m.id) # Save for 24hr auto-delete
+                u_success += 1
             except FloodWait as fw:
-                await asyncio.sleep(fw.value + 3)
-            except Exception as ex:
-                failed += f"{user_id} - {ex}\n"
-                continue
+                await asyncio.sleep(fw.value + 1)
+                try:
+                    m = (
+                        await app.forward_messages(user_id, y, x)
+                        if message.reply_to_message
+                        else await app.send_message(user_id, text=query)
+                    )
+                    if m:
+                        await save_gcast_msg(user_id, m.id)
+                    u_success += 1
+                except:
+                    u_failed += 1
+            except Exception:
+                # Silently catch PEER_ID_INVALID and blocked errors
+                u_failed += 1
 
-    text = f"**Broadcast Completed!**\n\n**Groups:** {sent} (Pinned: {pin})\n**Users:** {susr}"
-    
-    # Generate error file if it failed sending to some chats
-    if failed:
-        with open("errors.txt", "w") as f:
-            f.write(failed)
-        await message.reply_document(
-            document="errors.txt",
-            caption=text,
-        )
-        os.remove("errors.txt")
-    else:
-        await sent_msg.edit_text(text)
-        
+            completed += 1
+            await update_progress()
+            await asyncio.sleep(0.05)
+
+    # Broadcast to Groups
+    if send_to_groups:
+        for chat in chats:
+            if not IS_BROADCASTING:
+                break
+            chat_id = int(chat["chat_id"] if isinstance(chat, dict) else chat)
+            try:
+                m = (
+                    await app.forward_messages(chat_id, y, x)
+                    if message.reply_to_message
+                    else await app.send_message(chat_id, text=query)
+                )
+                if m:
+                    await save_gcast_msg(chat_id, m.id) # Save for 24hr auto-delete
+                g_success += 1
+                if pin:
+                    try:
+                        await m.pin(disable_notification=loud)
+                        pinned_cnt += 1
+                    except Exception:
+                        pass
+            except FloodWait as fw:
+                await asyncio.sleep(fw.value + 1)
+                try:
+                    m = (
+                        await app.forward_messages(chat_id, y, x)
+                        if message.reply_to_message
+                        else await app.send_message(chat_id, text=query)
+                    )
+                    if m:
+                        await save_gcast_msg(chat_id, m.id)
+                    g_success += 1
+                    if pin:
+                        try:
+                            await m.pin(disable_notification=loud)
+                            pinned_cnt += 1
+                        except:
+                            pass
+                except:
+                    g_failed += 1
+            except Exception:
+                 # Silently catch PEER_ID_INVALID and chat write forbidden errors
+                g_failed += 1
+
+            completed += 1
+            await update_progress()
+            await asyncio.sleep(0.05)
+
     IS_BROADCASTING = False
+    
+    # Final Result Edit
+    final_text = (
+        f"✅ **Broadcast Completed Successfully!**\n\n"
+        f"**Total Targets:** {total_targets}\n"
+        f"👥 **Users:** ✅ {u_success} | ❌ {u_failed}\n"
+        f"🏘 **Groups:** ✅ {g_success} | ❌ {g_failed}\n"
+        f"📌 **Pinned in Groups:** {pinned_cnt}\n\n"
+        f"🗑 **Auto-Delete:** Enabled (24 Hours)"
+    )
+    try:
+        await status_msg.edit_text(final_text)
+    except:
+        pass
+
+    # Send Log to Logger Group
+    if hasattr(app, "logger") and app.logger:
+        log_text = (
+            f"📢 **Broadcast Log**\n"
+            f"👤 **By:** {message.from_user.mention}\n"
+            f"📊 **Stats:**\n"
+            f"👥 **Users:** {u_success} Success | {u_failed} Failed\n"
+            f"🏘 **Groups:** {g_success} Success | {g_failed} Failed\n"
+            f"📌 **Pinned:** {pinned_cnt}\n"
+            f"🗑 **Auto-Delete:** 24 Hours"
+        )
+        try:
+            await app.send_message(app.logger, log_text)
+        except Exception:
+            pass
 
 @app.on_message(filters.command(["stop_gcast", "stop_broadcast"]) & app.sudoers)
 @lang.language()
@@ -217,14 +310,16 @@ async def _stop_gcast(_, message: types.Message):
         return await message.reply_text(message.lang["gcast_inactive"])
 
     IS_BROADCASTING = False
-    await (await app.send_message(
-        chat_id=app.logger,
-        text=message.lang["gcast_stop_log"].format(
-            message.from_user.id,
-            message.from_user.mention
-        )
-    )).pin(disable_notification=False)
-    await message.reply_text(message.lang["gcast_stop"])
+    if hasattr(app, "logger") and app.logger:
+        try:
+            await app.send_message(
+                chat_id=app.logger,
+                text=f"🛑 **Broadcast Stopped**\n👤 **By:** {message.from_user.mention}"
+            )
+        except:
+            pass
+    await message.reply_text("✅ **Broadcast stopped successfully.**")
+
 
 # ==========================================
 # SELF PROMO BROADCAST LOGIC
@@ -244,7 +339,7 @@ async def run_promo_broadcast(status_message=None):
     completed = 0
 
     async def update_progress():
-        if status_message and completed % 10 == 0:  # Update message every 10 sends to avoid floodwait
+        if status_message and completed % 20 == 0:  # Update message every 20 sends
             bar = get_progress_bar(completed, total_targets)
             percent = int((completed / total_targets) * 100) if total_targets else 100
             text = (
@@ -331,7 +426,6 @@ async def promo_toggle_cmd(client, message):
             )
             await status_msg.edit_text(stats_text)
             
-            # Send completion log to Alone logger chat
             if hasattr(app, "logger") and app.logger:
                 await app.send_message(app.logger, stats_text)
         except Exception as e:
@@ -341,7 +435,7 @@ async def promo_toggle_cmd(client, message):
 
 
 # ==========================================
-# BACKGROUND TASKS
+# BACKGROUND TASKS (Auto-Delete & Auto-Promo)
 # ==========================================
 async def auto_promo_task():
     while True:
@@ -368,5 +462,24 @@ async def auto_promo_task():
             pass
         await asyncio.sleep(3600) # Re-checks time limit every 1 hour
 
-# Starts background process alongside bot
+
+async def auto_delete_gcast_task():
+    # 24 Ghante baad Normal Broadcast delete karega
+    while True:
+        try:
+            time_limit = int(time.time()) - 86400 # 24 hours ago
+            old_messages = gcast_msgs_db.find({"timestamp": {"$lt": time_limit}})
+            async for doc in old_messages:
+                try:
+                    await app.delete_messages(chat_id=doc["chat_id"], message_ids=doc["message_id"])
+                except Exception:
+                    pass
+                await gcast_msgs_db.delete_one({"_id": doc["_id"]})
+                await asyncio.sleep(1) # Prevent flooding
+        except Exception:
+            pass
+        await asyncio.sleep(3600) # Check every 1 hour
+
+# Starts background processes alongside bot
 asyncio.create_task(auto_promo_task())
+asyncio.create_task(auto_delete_gcast_task())
