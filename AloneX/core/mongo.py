@@ -46,7 +46,7 @@ class MongoDB:
         self.users = []
         self.usersdb = self.db.users
 
-        # 🆕 Collection for daily stats (/tdata)
+        # 🆕 Collection for daily and weekly stats (/tdata, /todayuse)
         self.statsdb = self.db.daily_stats
 
     async def connect(self) -> None:
@@ -335,28 +335,50 @@ class MongoDB:
         return self.users
 
     # ==========================================
-    # DAILY STATS LOGIC FOR /tdata (WITH AUTO-CLEAN)
+    # DAILY & WEEKLY STATS LOGIC FOR /tdata AND /todayuse
     # ==========================================
     def get_today_date(self) -> str:
         return datetime.now().strftime("%Y-%m-%d")
 
+    def get_current_week(self) -> str:
+        # Returns format like '2026-29' for Year-WeekNumber
+        now = datetime.now()
+        return f"{now.isocalendar()[0]}-{now.isocalendar()[1]}"
+
     async def _check_and_reset_daily(self):
         """
-        Check karega ki aaj ki date DB wali date se match karti hai ya nahi.
-        Agar date change ho gayi (agla din aa gaya), toh saare stats 0 kar dega.
+        Check if today's date or this week matches DB.
+        If date changed -> reset daily stats to 0.
+        If week changed -> reset weekly stats to 0.
         """
         today = self.get_today_date()
-        doc = await self.statsdb.find_one({"_id": "daily_stats"})
-        
-        # Agar document nahi hai, ya date kal ki/purani hai -> Reset to 0
-        if not doc or doc.get("date") != today:
+        this_week = self.get_current_week()
+
+        # DAILY RESET
+        daily_doc = await self.statsdb.find_one({"_id": "daily_stats"})
+        if not daily_doc or daily_doc.get("date") != today:
             await self.statsdb.update_one(
                 {"_id": "daily_stats"},
                 {"$set": {
                     "date": today, 
                     "new_users": 0, 
-                    "added": 0,     # Bot added to new groups
-                    "removed": 0    # Bot kicked/removed from groups
+                    "added": 0, 
+                    "removed": 0,
+                    "today_songs": 0,
+                    "today_videos": 0
+                }},
+                upsert=True
+            )
+
+        # WEEKLY RESET
+        weekly_doc = await self.statsdb.find_one({"_id": "weekly_stats"})
+        if not weekly_doc or weekly_doc.get("week") != this_week:
+            await self.statsdb.update_one(
+                {"_id": "weekly_stats"},
+                {"$set": {
+                    "week": this_week, 
+                    "week_songs": 0, 
+                    "week_videos": 0
                 }},
                 upsert=True
             )
@@ -364,10 +386,7 @@ class MongoDB:
     # --- NEW USERS ---
     async def update_today_new_user(self) -> None:
         await self._check_and_reset_daily()
-        await self.statsdb.update_one(
-            {"_id": "daily_stats"},
-            {"$inc": {"new_users": 1}}
-        )
+        await self.statsdb.update_one({"_id": "daily_stats"}, {"$inc": {"new_users": 1}})
 
     async def get_today_new_users_count(self) -> int:
         await self._check_and_reset_daily()
@@ -377,10 +396,7 @@ class MongoDB:
     # --- ADDED TO GROUPS ---
     async def update_today_added(self) -> None:
         await self._check_and_reset_daily()
-        await self.statsdb.update_one(
-            {"_id": "daily_stats"},
-            {"$inc": {"added": 1}}
-        )
+        await self.statsdb.update_one({"_id": "daily_stats"}, {"$inc": {"added": 1}})
 
     async def get_today_added_count(self) -> int:
         await self._check_and_reset_daily()
@@ -390,15 +406,45 @@ class MongoDB:
     # --- REMOVED/KICKED FROM GROUPS ---
     async def update_today_removed(self) -> None:
         await self._check_and_reset_daily()
-        await self.statsdb.update_one(
-            {"_id": "daily_stats"},
-            {"$inc": {"removed": 1}}
-        )
+        await self.statsdb.update_one({"_id": "daily_stats"}, {"$inc": {"removed": 1}})
 
     async def get_today_removed_count(self) -> int:
         await self._check_and_reset_daily()
         doc = await self.statsdb.find_one({"_id": "daily_stats"})
         return doc.get("removed", 0) if doc else 0
+
+    # --- SONG & VIDEO PLAY STATS (TODAY & WEEK) ---
+    async def update_played_song(self) -> None:
+        """Call this function whenever an audio track is played."""
+        await self._check_and_reset_daily()
+        await self.statsdb.update_one({"_id": "daily_stats"}, {"$inc": {"today_songs": 1}}, upsert=True)
+        await self.statsdb.update_one({"_id": "weekly_stats"}, {"$inc": {"week_songs": 1}}, upsert=True)
+
+    async def update_played_video(self) -> None:
+        """Call this function whenever a video track is played."""
+        await self._check_and_reset_daily()
+        await self.statsdb.update_one({"_id": "daily_stats"}, {"$inc": {"today_videos": 1}}, upsert=True)
+        await self.statsdb.update_one({"_id": "weekly_stats"}, {"$inc": {"week_videos": 1}}, upsert=True)
+
+    async def get_today_song_count(self) -> int:
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "daily_stats"})
+        return doc.get("today_songs", 0) if doc else 0
+
+    async def get_today_video_count(self) -> int:
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "daily_stats"})
+        return doc.get("today_videos", 0) if doc else 0
+
+    async def get_week_song_count(self) -> int:
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "weekly_stats"})
+        return doc.get("week_songs", 0) if doc else 0
+
+    async def get_week_video_count(self) -> int:
+        await self._check_and_reset_daily()
+        doc = await self.statsdb.find_one({"_id": "weekly_stats"})
+        return doc.get("week_videos", 0) if doc else 0
     # ==========================================
 
     async def migrate_coll(self) -> None:
