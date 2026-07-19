@@ -70,9 +70,9 @@ async def save_gcast_msg(chat_id: int, message_id: int):
 # ==========================================
 # SELF PROMO ASSETS
 # ==========================================
-PROMO_IMAGE = "https://n.uguu.se/EBVPCnuG.jpg"
+PROMO_IMAGE = "https://h.uguu.se/giUxexAe.jpg"
 PROMO_TEXT = """
-<blockquote><b>⊚ ᴛʜɪꜱ ɪꜱ <a href="https://t.me/royal_musics_bot">˹♪ Mariya x Music ♪˼ [ 💌 ]</a>
+<blockquote><b>⊚ ᴛʜɪꜱ ɪꜱ <a href="https://t.me/AarushBabeMusic_Bot">˹♪ 𝘼𝘼𝙍𝙐 • 𝘽𝘼𝘽𝙀 ♫ 𝙈𝙐𝙎𝙄𝘾 ♪˼ [ 💌 ]</a>
 
 ➻ ᴧ ᴘʀєᴍɪᴜᴍ ᴅєꜱɪɢηєᴅ ϻᴜꜱɪᴄ ᴘʟᴧʏєʀ ʙσᴛ ꜰσʀ ᴛєʟєɢʀᴧϻ ɢʀσᴜᴘ & ᴄʜᴧηηєʟ. 
 🎧 24x7 ᴍᴜꜱɪᴄ • ꜱᴍᴏᴏᴛʜ ᴀɴᴅ ꜰᴀꜱᴛ ᴘʟᴀʏʙᴀᴄᴋ
@@ -90,7 +90,7 @@ def get_random_button():
             [
                 InlineKeyboardButton(
                     "🎵 Aᴅᴅ ᴍᴇ ɪɴ ʏᴏᴜʀ ɢʀᴏᴜᴘ 🎧", 
-                    url=f"https://t.me/royal_musics_bot?startgroup=true",
+                    url=f"https://t.me/AarushBabeMusic_Bot?startgroup=true",
                     style=styles[0]
                 )
             ]
