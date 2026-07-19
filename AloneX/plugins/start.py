@@ -131,8 +131,9 @@ async def unified_help_menu_cb(_, query: types.CallbackQuery):
                 if private
                 else query.lang["start_gp"].format(app.name)
             )
-            await query.message.edit_caption(
-                caption=_text,
+            # Wapas Home aane par image se hita kar dobara Video lagane ke liye:
+            await query.message.edit_media(
+                media=types.InputMediaVideo(media=config.START_VIDEO, caption=_text),
                 reply_markup=buttons.start_key(query.lang, private)
             )
         else: 
@@ -155,4 +156,38 @@ async def close_menu_cb(_, query: types.CallbackQuery):
         await query.message.delete()
     except Exception:
         pass
+    await query.answer()
+
+
+# ==========================================
+# 🛠️ SOURCE & SUPPORT PANEL HANDLERS 🛠️
+# ==========================================
+
+@app.on_callback_query(filters.regex("^source_panel$") & ~app.bl_users)
+async def source_panel_cb(_, query: types.CallbackQuery):
+    source_text = "❤️ Powered By Arush\n🤖 @AarushBabeMusic_Bot"
+    image_url = "https://n.uguu.se/xkSAGkHn.jpg"
+    
+    try:
+        # Edit media to show image and text instead of the start video
+        await query.message.edit_media(
+            media=types.InputMediaPhoto(media=image_url, caption=source_text),
+            reply_markup=buttons.source_markup()
+        )
+    except Exception as e:
+        print(f"Source Edit Error: {e}")
+    await query.answer()
+
+
+@app.on_callback_query(filters.regex("^support_panel$") & ~app.bl_users)
+async def support_panel_cb(_, query: types.CallbackQuery):
+    support_text = "<b>Wᴇʟᴄᴏᴍᴇ ᴛᴏ ᴛʜᴇ Sᴜᴘᴘᴏʀᴛ Pᴀɢᴇ!</b>\n\nJᴏɪɴ ᴏᴜʀ ᴄʜᴀɴɴᴇʟs ʙᴇʟᴏᴡ ғᴏʀ ᴜᴘᴅᴀᴛᴇs ᴀɴᴅ ʜᴇʟᴘ."
+    
+    try:
+        await query.message.edit_caption(
+            caption=support_text,
+            reply_markup=buttons.support_markup()
+        )
+    except Exception as e:
+        print(f"Support Edit Error: {e}")
     await query.answer()
