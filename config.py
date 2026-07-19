@@ -1,3 +1,4 @@
+import random
 from os import getenv
 from dotenv import load_dotenv
 
@@ -21,9 +22,9 @@ class Config:
         self.SESSION2 = getenv("SESSION2", None)
         self.SESSION3 = getenv("SESSION3", None)
 
-        self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/betabot_support")
-        self.SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/betabot_hub")
-        self.OWNER_USERNAME = getenv("OWNER_USERNAME", "https://t.me/sukoon_s")
+        self.SUPPORT_CHANNEL = getenv("SUPPORT_CHANNEL", "https://t.me/ArushUpdates")
+        self.SUPPORT_CHAT = getenv("SUPPORT_CHAT", "https://t.me/+_lxHlK6Z6fdjNTQ1")
+        self.OWNER_USERNAME = getenv("OWNER_USERNAME", "https://t.me/Innocentpapaboltee")
 
         self.AUTO_END: bool = getenv("AUTO_END", False)
         self.AUTO_LEAVE: bool = getenv("AUTO_LEAVE", False)
@@ -35,11 +36,17 @@ class Config:
         self.YOUTUBE_API_KEY = getenv("YOUTUBE_API_KEY", "INFLEX86759628D")
         self.DEFAULT_THUMB = getenv("DEFAULT_THUMB", "https://n.uguu.se/EBVPCnuG.jpg")
         
-        # --- NEW PING VIDEO LINK ADDED HERE ---
-        self.PING_IMG = getenv("PING_IMG", "https://radare.arzfun.com/api/tg/file?id=BAACAgUAAxkBAAEMsPNqV_Zr0LC9pwmtzWakOIchnXuIdQACiyAAAj56wVbxBM2QDTx3Fz0E&name=ENBUTHB6dnrNmQdH3dLRWe.mp4&header=video/mp4")
+        # --- NEW PING IMAGE ADDED HERE ---
+        self.PING_IMG = getenv("PING_IMG", "https://n.uguu.se/RxMnRVSt.jpg")
         
-        self.START_IMG = getenv("START_IMG", "https://files.catbox.moe/etdhlr.jpg")
-        self.START_VIDEO = getenv("START_VIDEO", "https://files.catbox.moe/0v9z4o.mp4")
+        # --- RANDOM START IMAGES ADDED HERE ---
+        start_images = [
+            "https://d.uguu.se/ZHOEFXuY.jpg",
+            "https://n.uguu.se/DFyjUUpe.jpg",
+            "https://h.uguu.se/iNPFMOZn.jpg",
+            "https://d.uguu.se/glQzmjxZ.jpg"
+        ]
+        self.START_IMG = getenv("START_IMG", random.choice(start_images))
 
     def check(self):
         missing = [
