@@ -37,14 +37,14 @@ async def start(_, message: types.Message):
         await asyncio.sleep(0.3)
         await loading_1.edit_text("<b>ɪ ᴀᴍ ᴀʟɪᴠᴇ ʙᴀʙʏ❤️😌🫣🫣</b>")
         await asyncio.sleep(0.5)
-        await loading_1.edit_text("<b>BETA ʙᴏᴛs🫣🫣.</b>")
+        await loading_1.edit_text("<b>𝚨 𝚨 ꧊᱂ 𝛖 𝛅 ⱶ꧊  ʙᴏᴛs🫣🫣.</b>")
         await asyncio.sleep(0.5)
         await loading_1.delete()
 
     # --- HANDLE /start help ---
     if len(message.command) > 1 and message.command[1] == "help":
         if private:
-            # Sticker Before Video in /start help
+            # Sticker Before Image in /start help
             await message.reply_sticker("CAACAgUAAxkBAAFJgZ1qBGwx9Z9vW5BhG3dw0l1A5j4CyQACXRYAAuc-wVWs4--9DGlDKzsE")
         return await _help(_, message)
 
@@ -56,9 +56,9 @@ async def start(_, message: types.Message):
 
     key = buttons.start_key(message.lang, private)
     
-    # --- SEND VIDEO BELOW TEXT ---
-    await message.reply_video(
-        video=config.START_VIDEO,  # Make sure START_VIDEO is defined in your config.py
+    # --- SEND IMAGE BELOW TEXT ---
+    await message.reply_photo(
+        photo=config.START_IMG,  # Make sure START_IMG is defined in your config.py
         caption=_text,
         reply_markup=key,
         quote=not private
