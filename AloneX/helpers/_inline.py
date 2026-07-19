@@ -318,7 +318,7 @@ class Inline:
                     self.ikb(text=lang["channel"], url=config.SUPPORT_CHANNEL, style=style[2]),
                 ],
                 [
-                    self.ikb(text="THE SHIV", url=config.OWNER_USERNAME, style=style[0]),
+                    self.ikb(text="𝚨 𝚨 ꧊᱂ 𝛖 𝛅 ⱶ꧊ ", url=config.OWNER_USERNAME, style=style[0]),
                 ]
             ]
         else:
