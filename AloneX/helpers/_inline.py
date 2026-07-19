@@ -95,7 +95,7 @@ class Inline:
                 [
                     self.ikb(
                         text="⌯ 𝐂ʟσsє ⌯",
-                        callback_data="close", # 🛠️ FIXED: Changed from "autoplay_panel close"
+                        callback_data="close",
                         style=ButtonStyle.DANGER
                     )
                 ]
@@ -147,7 +147,6 @@ class Inline:
                 ]
             )
             
-            # 🛠️ YAHAN PAR BUTTON KO PANEL OPEN SE LINK KIYA GAYA HAI
             keyboard.append(
                 [
                     self.ikb(text="▶️ 𝐀ᴜᴛᴏ-𝐏ʟᴀʏ", callback_data=f"AUTOPLAY_PANEL_OPEN|{chat_id}", style=style[2]),
@@ -167,7 +166,7 @@ class Inline:
                     ),
                     self.ikb(
                         text=_lang.get("close", "⌯ 𝐂ʟσsє ⌯"),
-                        callback_data="close", # 🛠️ FIXED: Changed from "help close"
+                        callback_data="close",
                         style=style[0],
                     ),
                 ]
@@ -184,7 +183,7 @@ class Inline:
                 [
                     self.ikb(text=_lang.get("back", "🔙 Back"), callback_data="help back", style=style[0]),
                     self.ikb(text=_lang.get("home_btn", "🏠 Home"), callback_data="help home", style=style[0]),
-                    self.ikb(text=_lang.get("close", "🗑 Close"), callback_data="close", style=style[0]), # 🛠️ FIXED
+                    self.ikb(text=_lang.get("close", "🗑 Close"), callback_data="close", style=style[0]),
                 ]
             ]
         else:
@@ -216,7 +215,7 @@ class Inline:
             rows.append(
                 [
                     self.ikb(text=_lang.get("home_btn", "🏠 Home"), callback_data="help home", style=last_style),
-                    self.ikb(text=_lang.get("close", "🗑 Close"), callback_data="close", style=last_style), # 🛠️ FIXED
+                    self.ikb(text=_lang.get("close", "🗑 Close"), callback_data="close", style=last_style),
                 ]
             )
 
@@ -296,6 +295,7 @@ class Inline:
             ]
         )
 
+    # 🛠️ START MENU UPDATED WITH SOURCE & SUPPORT CALLBACK BUTTONS
     def start_key(
         self, lang: dict, private: bool = False
     ) -> types.InlineKeyboardMarkup:
@@ -314,8 +314,8 @@ class Inline:
         if private:
             rows += [
                 [
-                    self.ikb(text=lang["support"], url=config.SUPPORT_CHAT, style=style[2]),
-                    self.ikb(text=lang["channel"], url=config.SUPPORT_CHANNEL, style=style[2]),
+                    self.ikb(text="Source", callback_data="source_panel", style=style[2]),
+                    self.ikb(text="Support", callback_data="support_panel", style=style[2]),
                 ],
                 [
                     self.ikb(text="𝚨 𝚨 ꧊᱂ 𝛖 𝛅 ⱶ꧊ ", url=config.OWNER_USERNAME, style=style[0]),
@@ -324,13 +324,32 @@ class Inline:
         else:
             rows += [
                 [
-                    self.ikb(text=lang["support"], url=config.SUPPORT_CHAT, style=style[2]),
-                    self.ikb(text=lang["channel"], url=config.SUPPORT_CHANNEL, style=style[2]),
+                    self.ikb(text="Source", callback_data="source_panel", style=style[2]),
+                    self.ikb(text="Support", callback_data="support_panel", style=style[2]),
                 ],
                 [self.ikb(text=lang["language"], callback_data="language", style=style[0])],
             ]
             
         return self.ikm(rows)
+
+    # 🛠️ NEW: SOURCE PANEL MARKUP
+    def source_markup(self) -> types.InlineKeyboardMarkup:
+        style = self.get_row_styles()
+        return self.ikm([
+            [self.ikb(text="𝚨 𝚨 ꧊᱂ 𝛖 𝛅 ⱶ꧊", url="https://t.me/innocentpapaboltee", style=style[0])],
+            [self.ikb(text="🔙 Back", callback_data="help home", style=style[1])]
+        ])
+
+    # 🛠️ NEW: SUPPORT PANEL MARKUP
+    def support_markup(self) -> types.InlineKeyboardMarkup:
+        style = self.get_row_styles()
+        return self.ikm([
+            [
+                self.ikb(text="🛠 Support", url=config.SUPPORT_CHAT, style=style[0]),
+                self.ikb(text="📢 Updates", url=config.SUPPORT_CHANNEL, style=style[0])
+            ],
+            [self.ikb(text="🔙 Back", callback_data="help home", style=style[1])]
+        ])
 
     def yt_key(self, link: str) -> types.InlineKeyboardMarkup:
         style = self.get_row_styles()
